@@ -3,7 +3,7 @@ package t::Eval;
 use warnings;
 use strict;
 
-use Test::More;
+use Test::More 0.41;
 
 sub _ok_no_eval() {
 	my $lastsub = "";

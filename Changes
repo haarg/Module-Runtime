@@ -1,3 +1,5 @@
+  * declare correct version for Test::More dependency
+
 version 0.014; 2014-02-06
 
   * bugfix: suppress any CORE::GLOBAL::require override, where possible,
