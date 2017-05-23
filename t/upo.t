@@ -5,6 +5,7 @@ use Test::More tests => 42;
 
 BEGIN { use_ok "Module::Runtime", qw(use_package_optimistically); }
 
+unshift @INC, ".";
 my $result;
 
 # a module that doesn't exist
