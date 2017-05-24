@@ -31,7 +31,7 @@ Module::Build->new(
 				"git://git.fysh.org/zefram/Module-Runtime.git",
 		},
 	},
-	create_makefile_pl => "passthrough",
+	create_makefile_pl => "traditional",
 	sign => 1,
 )->create_build_script;
 

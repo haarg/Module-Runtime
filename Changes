@@ -3,6 +3,10 @@
 
   * declare correct version for Test::More dependency
 
+  * generate "traditional" style of compatibility Makefile.PL, to
+    permit building in environments that don't support Build.PL or
+    configure_requires
+
 version 0.014; 2014-02-06
 
   * bugfix: suppress any CORE::GLOBAL::require override, where possible,
