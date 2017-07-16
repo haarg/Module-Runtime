@@ -362,6 +362,19 @@ of C<require>).  If the module cannot be found then it is assumed that
 the package was actually already loaded by other means, and no error
 is signalled.  That's the optimistic bit.
 
+I<Warning:> this optional module loading is liable to cause unreliable
+behaviour, including security problems.  It interacts especially badly
+with having C<.> in C<@INC>, which was the default state of affairs in
+Perls prior to 5.25.11.  If a package is actually defined by some means
+other than a module, then applying this function to it causes a spurious
+attempt to load a module that is expected to be non-existent.  If a
+module actually exists under that name then it will be unintentionally
+loaded.  If C<.> is in C<@INC> and this code is ever run with the current
+directory being one writable by a malicious user (such as F</tmp>), then
+the malicious user can easily cause the victim to run arbitrary code, by
+creating a module file under the predictable spuriously-loaded name in the
+writable directory.  Generally, optional module loading should be avoided.
+
 This is mostly the same operation that is performed by the L<base> pragma
 to ensure that the specified base classes are available.  The behaviour
 of L<base> was simplified in version 2.18, and later improved in version
