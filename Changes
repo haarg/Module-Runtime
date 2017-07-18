@@ -1,3 +1,5 @@
+  * in META.json, specify type of public repository
+
 version 0.015; 2017-07-16
 
   * update test suite to not rely on . in @INC, which is no longer

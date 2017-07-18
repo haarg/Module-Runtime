@@ -26,9 +26,13 @@ Module::Build->new(
 	dynamic_config => 0,
 	meta_add => { distribution_type => "module" },
 	meta_merge => {
+		"meta-spec" => { version => "2" },
 		resources => {
-			repository =>
-				"git://git.fysh.org/zefram/Module-Runtime.git",
+			repository => {
+				type => "git",
+				url => "git://git.fysh.org/zefram/".
+					"Module-Runtime.git",
+			},
 		},
 	},
 	create_makefile_pl => "traditional",
