@@ -28,6 +28,11 @@ Module::Build->new(
 	meta_merge => {
 		"meta-spec" => { version => "2" },
 		resources => {
+			bugtracker => {
+				mailto => "bug-Module-Runtime\@rt.cpan.org",
+				web => "https://rt.cpan.org/Public/Dist/".
+					"Display.html?Name=Module-Runtime",
+			},
 			repository => {
 				type => "git",
 				url => "git://git.fysh.org/zefram/".
