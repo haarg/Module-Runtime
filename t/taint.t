@@ -4,6 +4,14 @@
 use warnings;
 use strict;
 
+BEGIN {
+	if(eval { eval("1".substr($^X,0,0)) }) {
+		require Test::More;
+		Test::More::plan(skip_all =>
+			"tainting not supported on this Perl");
+	}
+}
+
 use Test::More tests => 5;
 
 BEGIN {

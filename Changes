@@ -1,3 +1,8 @@
+  * skip t/taint.t if the perl empirically doesn't perform taint checks
+    but the script got run anyway (which happens with an unsupported
+    configuration of the Perl core which some people are using in the
+    absence of a supported no-taint configuration)
+
   * in META.{yml,json}, point to public bug tracker
 
   * in META.json, specify type of public repository
