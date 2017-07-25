@@ -3,6 +3,9 @@
     configuration of the Perl core which some people are using in the
     absence of a supported no-taint configuration)
 
+  * in documentation, use four-column indentation for all verbatim
+    material
+
   * in META.{yml,json}, point to public bug tracker
 
   * in META.json, specify type of public repository
