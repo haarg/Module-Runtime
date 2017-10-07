@@ -3,6 +3,9 @@
     configuration of the Perl core which some people are using in the
     absence of a supported no-taint configuration)
 
+  * in t/taint.t, use $^X rather than $ENV{PATH} as the primordial
+    tainted value to taint a string being tested
+
   * in documentation, use four-column indentation for all verbatim
     material
 
