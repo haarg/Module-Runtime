@@ -19,7 +19,8 @@ BEGIN {
 		qw(require_module use_module use_package_optimistically);
 }
 
-my $tainted_modname = substr($^X, 0, 0) . "Module::Runtime";
+unshift @INC, "./t/lib";
+my $tainted_modname = substr($^X, 0, 0) . "t::Simple";
 eval { require_module($tainted_modname) };
 like $@, qr/\AInsecure dependency /;
 eval { use_module($tainted_modname) };

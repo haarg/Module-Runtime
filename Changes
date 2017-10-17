@@ -1,3 +1,6 @@
+  * port t/taint.t to Perl 5.27.5, where re-requiring an already-loaded
+    module doesn't trigger tainting
+
   * skip t/taint.t if the perl empirically doesn't perform taint checks
     but the script got run anyway (which happens with an unsupported
     configuration of the Perl core which some people are using in the
