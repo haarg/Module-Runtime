@@ -497,10 +497,17 @@ its bugfix but for some reason its XS implementation isn't available.
 
 =head1 SEE ALSO
 
-L<Lexical::SealRequireHints>,
-L<base>,
-L<perlfunc/require>,
-L<perlfunc/use>
+=over 4
+
+=item * L<Lexical::SealRequireHints>
+
+=item * L<base>
+
+=item * L<perlfunc/require>
+
+=item * L<perlfunc/use>
+
+=back
 
 =head1 AUTHOR
 
