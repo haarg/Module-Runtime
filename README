@@ -24,10 +24,10 @@ pure Perl.
 
 INSTALLATION
 
-	perl Build.PL
-	./Build
-	./Build test
-	./Build install
+    perl Build.PL
+    ./Build
+    ./Build test
+    ./Build install
 
 AUTHOR
 
