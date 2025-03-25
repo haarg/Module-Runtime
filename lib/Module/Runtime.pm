@@ -177,7 +177,8 @@ our $module_name_rx = qr/[A-Z_a-z][0-9A-Z_a-z]*(?:::[0-9A-Z_a-z]+)*/;
 
 =item $top_module_spec_rx
 
-Matches a module specification for use with L</compose_module_name>,
+Matches a module specification for use with
+L<"compose_module_name"|/compose_module_name(PREFIX, SPEC)>.
 where no prefix is being used.
 
 =cut
@@ -192,7 +193,8 @@ our $top_module_spec_rx = qr/$qual_module_spec_rx|$unqual_top_module_spec_rx/o;
 
 =item $sub_module_spec_rx
 
-Matches a module specification for use with L</compose_module_name>,
+Matches a module specification for use with
+L<"compose_module_name"|/compose_module_name(PREFIX, SPEC)>,
 where a prefix is being used.
 
 =cut
@@ -220,7 +222,7 @@ sub is_module_name($) { _is_string($_[0]) && $_[0] =~ /\A$module_name_rx\z/o }
 
 =item is_valid_module_name(ARG)
 
-Deprecated alias for L</is_module_name>.
+Deprecated alias for L<"is_module_name"|/is_module_name(ARG)>.
 
 =cut
 
@@ -334,9 +336,9 @@ ensure that the version loaded is at least the version required.  This is
 the same functionality provided by the I<VERSION> parameter of C<use>.
 
 On success, the name of the module is returned.  This is unlike
-L</require_module>, and is done so that the entire call to L</use_module>
-can be used as a class name to call a constructor, as in the example in
-the synopsis.
+L<"require_module"|/require_module(NAME)>, and is done so that the entire call
+to L<"use_module"|/use_module(NAME[, VERSION])> can be used as a class name to
+call a constructor, as in the example in the synopsis.
 
 =cut
 
@@ -349,7 +351,8 @@ sub use_module($;$) {
 
 =item use_package_optimistically(NAME[, VERSION])
 
-This is an analogue of L</use_module> for the situation where there is
+This is an analogue of L<"use_module"|/use_module(NAME[, VERSION])> for
+the situation where there is
 uncertainty as to whether a package/class is defined in its own module
 or by some other means.  It attempts to arrange for the named package to
 be available, either by loading a module or by doing nothing and hoping.
@@ -381,7 +384,7 @@ If a I<VERSION> is specified, the C<VERSION> method of the loaded package is
 called with the specified I<VERSION> as an argument.  This normally serves
 to ensure that the version loaded is at least the version required.
 On success, the name of the package is returned.  These aspects of the
-function work just like L</use_module>.
+function work just like L<"use_module"|/use_module(NAME[, VERSION])>.
 
 =cut
 
@@ -406,7 +409,8 @@ sub use_package_optimistically($;$) {
 =item is_module_spec(PREFIX, SPEC)
 
 Returns a truth value indicating
-whether I<SPEC> is valid input for L</compose_module_name>.
+whether I<SPEC> is valid input for
+L<"compose_module_name"|/compose_module_name(PREFIX, SPEC)>.
 See below for what that entails.  Whether a I<PREFIX> is supplied affects
 the validity of I<SPEC>, but the exact value of the prefix is unimportant,
 so this function treats I<PREFIX> as a truth value.
@@ -422,7 +426,7 @@ sub is_module_spec($$) {
 
 =item is_valid_module_spec(PREFIX, SPEC)
 
-Deprecated alias for L</is_module_spec>.
+Deprecated alias for L<"is_module_spec"|/is_module_spec(PREFIX, SPEC)>.
 
 =cut
 
@@ -430,7 +434,8 @@ Deprecated alias for L</is_module_spec>.
 
 =item check_module_spec(PREFIX, SPEC)
 
-Check whether I<SPEC> is valid input for L</compose_module_name>.
+Check whether I<SPEC> is valid input for
+L<"compose_module_name"|/compose_module_name(PREFIX, SPEC)>.
 Return normally if it is, or C<die> if it is not.
 
 =cut
@@ -482,7 +487,8 @@ sub compose_module_name($$) {
 
 On Perl versions 5.7.2 to 5.8.8, if C<require> is overridden by the
 C<CORE::GLOBAL> mechanism, it is likely to break the heuristics used by
-L</use_package_optimistically>, making it signal an error for a missing
+L<"use_package_optimistically"|/use_package_optimistically(NAME[, VERSION])>,
+making it signal an error for a missing
 module rather than assume that it was already loaded.  From Perl 5.8.9
 onwards, and on 5.7.1 and earlier, this module can avoid being confused
 by such an override.  On the affected versions, a C<require> override
