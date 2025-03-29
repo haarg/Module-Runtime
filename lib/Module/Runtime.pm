@@ -1,3 +1,172 @@
+package Module::Runtime;
+
+# Don't "use 5.006" here, because Perl 5.15.6 will load feature.pm if
+# the version check is done that way.
+BEGIN { require 5.006; }
+# Don't "use warnings" here, to avoid dependencies.  Do standardise the
+# warning status by lexical override; unfortunately the only safe bitset
+# to build in is the empty set, equivalent to "no warnings".
+BEGIN { ${^WARNING_BITS} = ""; }
+# Don't "use strict" here, to avoid dependencies.
+
+our $VERSION = "0.016";
+
+# Don't use Exporter here, to avoid dependencies.
+our @EXPORT_OK = qw(
+    $module_name_rx is_module_name is_valid_module_name check_module_name
+    module_notional_filename require_module
+    use_module use_package_optimistically
+    $top_module_spec_rx $sub_module_spec_rx
+    is_module_spec is_valid_module_spec check_module_spec
+    compose_module_name
+);
+my %export_ok = map { ($_ => undef) } @EXPORT_OK;
+sub import {
+    my $me = shift;
+    my $callpkg = caller(0);
+    my $errs = "";
+    foreach(@_) {
+        if(exists $export_ok{$_}) {
+            # We would need to do "no strict 'refs'" here
+            # if we had enabled strict at file scope.
+            if(/\A\$(.*)\z/s) {
+                *{$callpkg."::".$1} = \$$1;
+            } else {
+                *{$callpkg."::".$_} = \&$_;
+            }
+        } else {
+            $errs .= "\"$_\" is not exported by the $me module\n";
+        }
+    }
+    if($errs ne "") {
+        die "${errs}Can't continue after import errors ".
+            "at @{[(caller(0))[1]]} line @{[(caller(0))[2]]}.\n";
+    }
+}
+
+# Logic duplicated from Params::Classify.  Duplicating it here avoids
+# an extensive and potentially circular dependency graph.
+sub _is_string($) {
+    my($arg) = @_;
+    return defined($arg) && ref(\$arg) eq "SCALAR";
+}
+
+our $module_name_rx = qr/[A-Z_a-z][0-9A-Z_a-z]*(?:::[0-9A-Z_a-z]+)*/;
+
+my $qual_module_spec_rx =
+    qr#(?:/|::)[A-Z_a-z][0-9A-Z_a-z]*(?:(?:/|::)[0-9A-Z_a-z]+)*#;
+
+my $unqual_top_module_spec_rx =
+    qr#[A-Z_a-z][0-9A-Z_a-z]*(?:(?:/|::)[0-9A-Z_a-z]+)*#;
+
+our $top_module_spec_rx = qr/$qual_module_spec_rx|$unqual_top_module_spec_rx/o;
+
+my $unqual_sub_module_spec_rx = qr#[0-9A-Z_a-z]+(?:(?:/|::)[0-9A-Z_a-z]+)*#;
+
+our $sub_module_spec_rx = qr/$qual_module_spec_rx|$unqual_sub_module_spec_rx/o;
+
+sub is_module_name($) { _is_string($_[0]) && $_[0] =~ /\A$module_name_rx\z/o }
+
+*is_valid_module_name = \&is_module_name;
+
+sub check_module_name($) {
+    unless(&is_module_name) {
+        die +(_is_string($_[0]) ? "`$_[0]'" : "argument").
+            " is not a module name\n";
+    }
+}
+
+sub module_notional_filename($) {
+    &check_module_name;
+    my($name) = @_;
+    $name =~ s!::!/!g;
+    return $name.".pm";
+}
+
+# Don't "use constant" here, to avoid dependencies.
+BEGIN {
+    *_WORK_AROUND_HINT_LEAKAGE =
+        "$]" < 5.011 && !("$]" >= 5.009004 && "$]" < 5.010001)
+            ? sub(){1} : sub(){0};
+    *_WORK_AROUND_BROKEN_MODULE_STATE = "$]" < 5.009 ? sub(){1} : sub(){0};
+}
+
+BEGIN { if(_WORK_AROUND_BROKEN_MODULE_STATE) { eval q{
+    sub Module::Runtime::__GUARD__::DESTROY {
+        delete $INC{$_[0]->[0]} if @{$_[0]};
+    }
+    1;
+}; die $@ if $@ ne ""; } }
+
+sub require_module($) {
+    # Localise %^H to work around [perl #68590], where the bug exists
+    # and this is a satisfactory workaround.  The bug consists of
+    # %^H state leaking into each required module, polluting the
+    # module's lexical state.
+    local %^H if _WORK_AROUND_HINT_LEAKAGE;
+    if(_WORK_AROUND_BROKEN_MODULE_STATE) {
+        my $notional_filename = &module_notional_filename;
+        my $guard = bless([ $notional_filename ],
+            "Module::Runtime::__GUARD__");
+        my $result = CORE::require($notional_filename);
+        pop @$guard;
+        return $result;
+    } else {
+        return scalar(CORE::require(&module_notional_filename));
+    }
+}
+
+sub use_module($;$) {
+    my($name, $version) = @_;
+    require_module($name);
+    $name->VERSION($version) if @_ >= 2;
+    return $name;
+}
+
+sub use_package_optimistically($;$) {
+    my($name, $version) = @_;
+    my $fn = module_notional_filename($name);
+    eval { local $SIG{__DIE__}; require_module($name); };
+    die $@ if $@ ne "" && (
+        $@ !~ /\ACan't locate \Q$fn\E .+ at \Q@{[__FILE__]}\E line/s ||
+        $@ =~ /^Compilation\ failed\ in\ require\ at\ \Q@{[__FILE__]}\E\ line/xm
+    );
+    $name->VERSION($version) if @_ >= 2;
+    return $name;
+}
+
+sub is_module_spec($$) {
+    my($prefix, $spec) = @_;
+    return _is_string($spec) &&
+        $spec =~ ($prefix ? qr/\A$sub_module_spec_rx\z/o :
+                            qr/\A$top_module_spec_rx\z/o);
+}
+
+*is_valid_module_spec = \&is_module_spec;
+
+sub check_module_spec($$) {
+    unless(&is_module_spec) {
+        die +(_is_string($_[1]) ? "`$_[1]'" : "argument").
+            " is not a module specification\n";
+    }
+}
+
+sub compose_module_name($$) {
+    my($prefix, $spec) = @_;
+    check_module_name($prefix) if defined $prefix;
+    &check_module_spec;
+    if($spec =~ s#\A(?:/|::)##) {
+        # OK
+    } else {
+        $spec = $prefix."::".$spec if defined $prefix;
+    }
+    $spec =~ s#/#::#g;
+    return $spec;
+}
+
+1;
+__END__
+
 =head1 NAME
 
 Module::Runtime - runtime module handling
@@ -104,61 +273,6 @@ Perl 5.11.2, and is fixed in Perl 5.11.3.  The workaround means that
 a module loaded via this module will always see the correct context.
 Modules loaded in other ways remain vulnerable.
 
-=cut
-
-package Module::Runtime;
-
-# Don't "use 5.006" here, because Perl 5.15.6 will load feature.pm if
-# the version check is done that way.
-BEGIN { require 5.006; }
-# Don't "use warnings" here, to avoid dependencies.  Do standardise the
-# warning status by lexical override; unfortunately the only safe bitset
-# to build in is the empty set, equivalent to "no warnings".
-BEGIN { ${^WARNING_BITS} = ""; }
-# Don't "use strict" here, to avoid dependencies.
-
-our $VERSION = "0.016";
-
-# Don't use Exporter here, to avoid dependencies.
-our @EXPORT_OK = qw(
-    $module_name_rx is_module_name is_valid_module_name check_module_name
-    module_notional_filename require_module
-    use_module use_package_optimistically
-    $top_module_spec_rx $sub_module_spec_rx
-    is_module_spec is_valid_module_spec check_module_spec
-    compose_module_name
-);
-my %export_ok = map { ($_ => undef) } @EXPORT_OK;
-sub import {
-    my $me = shift;
-    my $callpkg = caller(0);
-    my $errs = "";
-    foreach(@_) {
-        if(exists $export_ok{$_}) {
-            # We would need to do "no strict 'refs'" here
-            # if we had enabled strict at file scope.
-            if(/\A\$(.*)\z/s) {
-                *{$callpkg."::".$1} = \$$1;
-            } else {
-                *{$callpkg."::".$_} = \&$_;
-            }
-        } else {
-            $errs .= "\"$_\" is not exported by the $me module\n";
-        }
-    }
-    if($errs ne "") {
-        die "${errs}Can't continue after import errors ".
-            "at @{[(caller(0))[1]]} line @{[(caller(0))[2]]}.\n";
-    }
-}
-
-# Logic duplicated from Params::Classify.  Duplicating it here avoids
-# an extensive and potentially circular dependency graph.
-sub _is_string($) {
-    my($arg) = @_;
-    return defined($arg) && ref(\$arg) eq "SCALAR";
-}
-
 =head1 REGULAR EXPRESSIONS
 
 These regular expressions do not include any anchors, so to check
@@ -171,37 +285,17 @@ anchors yourself.
 
 Matches a valid Perl module name in bareword syntax.
 
-=cut
-
-our $module_name_rx = qr/[A-Z_a-z][0-9A-Z_a-z]*(?:::[0-9A-Z_a-z]+)*/;
-
 =item $top_module_spec_rx
 
 Matches a module specification for use with
 L<"compose_module_name"|/compose_module_name(PREFIX, SPEC)>.
 where no prefix is being used.
 
-=cut
-
-my $qual_module_spec_rx =
-    qr#(?:/|::)[A-Z_a-z][0-9A-Z_a-z]*(?:(?:/|::)[0-9A-Z_a-z]+)*#;
-
-my $unqual_top_module_spec_rx =
-    qr#[A-Z_a-z][0-9A-Z_a-z]*(?:(?:/|::)[0-9A-Z_a-z]+)*#;
-
-our $top_module_spec_rx = qr/$qual_module_spec_rx|$unqual_top_module_spec_rx/o;
-
 =item $sub_module_spec_rx
 
 Matches a module specification for use with
 L<"compose_module_name"|/compose_module_name(PREFIX, SPEC)>,
 where a prefix is being used.
-
-=cut
-
-my $unqual_sub_module_spec_rx = qr#[0-9A-Z_a-z]+(?:(?:/|::)[0-9A-Z_a-z]+)*#;
-
-our $sub_module_spec_rx = qr/$qual_module_spec_rx|$unqual_sub_module_spec_rx/o;
 
 =back
 
@@ -216,32 +310,15 @@ our $sub_module_spec_rx = qr/$qual_module_spec_rx|$unqual_sub_module_spec_rx/o;
 Returns a truth value indicating whether I<ARG> is a plain string
 satisfying Perl module name syntax as described for L</$module_name_rx>.
 
-=cut
-
-sub is_module_name($) { _is_string($_[0]) && $_[0] =~ /\A$module_name_rx\z/o }
-
 =item is_valid_module_name(ARG)
 
 Deprecated alias for L<"is_module_name"|/is_module_name(ARG)>.
-
-=cut
-
-*is_valid_module_name = \&is_module_name;
 
 =item check_module_name(ARG)
 
 Check whether I<ARG> is a plain string
 satisfying Perl module name syntax as described for L</$module_name_rx>.
 Return normally if it is, or C<die> if it is not.
-
-=cut
-
-sub check_module_name($) {
-    unless(&is_module_name) {
-        die +(_is_string($_[0]) ? "`$_[0]'" : "argument").
-            " is not a module name\n";
-    }
-}
 
 =item module_notional_filename(NAME)
 
@@ -256,15 +333,6 @@ This filename is always in Unix style, with C</> directory separators
 and a C<.pm> suffix.  This kind of filename can be used as an argument to
 C<require>, and is the key that appears in C<%INC> to identify a module,
 regardless of actual local filename syntax.
-
-=cut
-
-sub module_notional_filename($) {
-    &check_module_name;
-    my($name) = @_;
-    $name =~ s!::!/!g;
-    return $name.".pm";
-}
 
 =item require_module(NAME)
 
@@ -281,41 +349,6 @@ module will be used if available.
 The return value is as for C<require>.  That is, it is the value returned
 by the module itself if the module is loaded anew, or C<1> if the module
 was already loaded.
-
-=cut
-
-# Don't "use constant" here, to avoid dependencies.
-BEGIN {
-    *_WORK_AROUND_HINT_LEAKAGE =
-        "$]" < 5.011 && !("$]" >= 5.009004 && "$]" < 5.010001)
-            ? sub(){1} : sub(){0};
-    *_WORK_AROUND_BROKEN_MODULE_STATE = "$]" < 5.009 ? sub(){1} : sub(){0};
-}
-
-BEGIN { if(_WORK_AROUND_BROKEN_MODULE_STATE) { eval q{
-    sub Module::Runtime::__GUARD__::DESTROY {
-        delete $INC{$_[0]->[0]} if @{$_[0]};
-    }
-    1;
-}; die $@ if $@ ne ""; } }
-
-sub require_module($) {
-    # Localise %^H to work around [perl #68590], where the bug exists
-    # and this is a satisfactory workaround.  The bug consists of
-    # %^H state leaking into each required module, polluting the
-    # module's lexical state.
-    local %^H if _WORK_AROUND_HINT_LEAKAGE;
-    if(_WORK_AROUND_BROKEN_MODULE_STATE) {
-        my $notional_filename = &module_notional_filename;
-        my $guard = bless([ $notional_filename ],
-            "Module::Runtime::__GUARD__");
-        my $result = CORE::require($notional_filename);
-        pop @$guard;
-        return $result;
-    } else {
-        return scalar(CORE::require(&module_notional_filename));
-    }
-}
 
 =back
 
@@ -339,15 +372,6 @@ On success, the name of the module is returned.  This is unlike
 L<"require_module"|/require_module(NAME)>, and is done so that the entire call
 to L<"use_module"|/use_module(NAME[, VERSION])> can be used as a class name to
 call a constructor, as in the example in the synopsis.
-
-=cut
-
-sub use_module($;$) {
-    my($name, $version) = @_;
-    require_module($name);
-    $name->VERSION($version) if @_ >= 2;
-    return $name;
-}
 
 =item use_package_optimistically(NAME[, VERSION])
 
@@ -386,20 +410,6 @@ to ensure that the version loaded is at least the version required.
 On success, the name of the package is returned.  These aspects of the
 function work just like L<"use_module"|/use_module(NAME[, VERSION])>.
 
-=cut
-
-sub use_package_optimistically($;$) {
-    my($name, $version) = @_;
-    my $fn = module_notional_filename($name);
-    eval { local $SIG{__DIE__}; require_module($name); };
-    die $@ if $@ ne "" && (
-        $@ !~ /\ACan't locate \Q$fn\E .+ at \Q@{[__FILE__]}\E line/s ||
-        $@ =~ /^Compilation\ failed\ in\ require\ at\ \Q@{[__FILE__]}\E\ line/xm
-    );
-    $name->VERSION($version) if @_ >= 2;
-    return $name;
-}
-
 =back
 
 =head2 Module name composition
@@ -415,37 +425,15 @@ See below for what that entails.  Whether a I<PREFIX> is supplied affects
 the validity of I<SPEC>, but the exact value of the prefix is unimportant,
 so this function treats I<PREFIX> as a truth value.
 
-=cut
-
-sub is_module_spec($$) {
-    my($prefix, $spec) = @_;
-    return _is_string($spec) &&
-        $spec =~ ($prefix ? qr/\A$sub_module_spec_rx\z/o :
-                            qr/\A$top_module_spec_rx\z/o);
-}
-
 =item is_valid_module_spec(PREFIX, SPEC)
 
 Deprecated alias for L<"is_module_spec"|/is_module_spec(PREFIX, SPEC)>.
-
-=cut
-
-*is_valid_module_spec = \&is_module_spec;
 
 =item check_module_spec(PREFIX, SPEC)
 
 Check whether I<SPEC> is valid input for
 L<"compose_module_name"|/compose_module_name(PREFIX, SPEC)>.
 Return normally if it is, or C<die> if it is not.
-
-=cut
-
-sub check_module_spec($$) {
-    unless(&is_module_spec) {
-        die +(_is_string($_[1]) ? "`$_[1]'" : "argument").
-            " is not a module specification\n";
-    }
-}
 
 =item compose_module_name(PREFIX, SPEC)
 
@@ -465,21 +453,6 @@ Additionally, if I<PREFIX> is not C<undef> then it must be a module
 name in standard form, and it is prefixed to the user-specified name.
 The user can inhibit the prefix addition by starting I<SPEC> with a
 separator (either C</> or C<::>).
-
-=cut
-
-sub compose_module_name($$) {
-    my($prefix, $spec) = @_;
-    check_module_name($prefix) if defined $prefix;
-    &check_module_spec;
-    if($spec =~ s#\A(?:/|::)##) {
-        # OK
-    } else {
-        $spec = $prefix."::".$spec if defined $prefix;
-    }
-    $spec =~ s#/#::#g;
-    return $spec;
-}
 
 =back
 
@@ -522,7 +495,3 @@ Andrew Main (Zefram) <zefram@fysh.org>
 
 This module is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
-
-=cut
-
-1;
