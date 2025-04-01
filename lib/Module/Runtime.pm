@@ -91,12 +91,16 @@ BEGIN {
     *_WORK_AROUND_BROKEN_MODULE_STATE = "$]" < 5.009 ? sub(){1} : sub(){0};
 }
 
-BEGIN { if(_WORK_AROUND_BROKEN_MODULE_STATE) { eval q{
-    sub Module::Runtime::__GUARD__::DESTROY {
-        delete $INC{$_[0]->[0]} if @{$_[0]};
+BEGIN {
+    if(_WORK_AROUND_BROKEN_MODULE_STATE) {
+        eval <<'END_CODE' or die $@; ## no critic (BuiltinFunctions::ProhibitStringyEval)
+            sub Module::Runtime::__GUARD__::DESTROY {
+                delete $INC{$_[0]->[0]} if @{$_[0]};
+            }
+            1;
+END_CODE
     }
-    1;
-}; die $@ if $@ ne ""; } }
+}
 
 sub require_module($) {
     # Localise %^H to work around [perl #68590], where the bug exists
@@ -126,11 +130,16 @@ sub use_module($;$) {
 sub use_package_optimistically($;$) {
     my($name, $version) = @_;
     my $fn = module_notional_filename($name);
-    eval { local $SIG{__DIE__}; require_module($name); };
-    die $@ if $@ ne "" && (
-        $@ !~ /\ACan't locate \Q$fn\E .+ at \Q@{[__FILE__]}\E line/s ||
-        $@ =~ /^Compilation\ failed\ in\ require\ at\ \Q@{[__FILE__]}\E\ line/xm
-    );
+    eval {
+        local $SIG{__DIE__};
+        require_module($name);
+        1;
+    } or do {
+        die $@ if (
+            $@ !~ /\ACan't locate \Q$fn\E .+ at \Q@{[__FILE__]}\E line/s ||
+            $@ =~ /^Compilation\ failed\ in\ require\ at\ \Q@{[__FILE__]}\E\ line/xm
+        );
+    };
     $name->VERSION($version) if @_ >= 2;
     return $name;
 }
