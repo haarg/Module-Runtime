@@ -127,6 +127,7 @@ sub use_module($;$) {
     return $name;
 }
 
+my $FILE = __FILE__;
 sub use_package_optimistically($;$) {
     my($name, $version) = @_;
     my $fn = module_notional_filename($name);
@@ -136,8 +137,8 @@ sub use_package_optimistically($;$) {
         1;
     } or do {
         die $@ if (
-            $@ !~ /\ACan't locate \Q$fn\E .+ at \Q@{[__FILE__]}\E line/s ||
-            $@ =~ /^Compilation\ failed\ in\ require\ at\ \Q@{[__FILE__]}\E\ line/xm
+            $@ !~ /\ACan't locate \Q$fn\E .+ at \Q$FILE\E line/s ||
+            $@ =~ /^Compilation\ failed\ in\ require\ at\ \Q$FILE\E\ line/xm
         );
     };
     $name->VERSION($version) if @_ >= 2;
