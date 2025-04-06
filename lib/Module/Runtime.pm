@@ -235,7 +235,7 @@ pure Perl.
 
 The usable module name syntax has not changed from Perl 5.000 up to
 Perl 5.19.8.  The syntax is composed entirely of ASCII characters.
-From Perl 5.6 onwards there has been some attempt to allow the use of
+From Perl 5.6 onward there has been some attempt to allow the use of
 non-ASCII Unicode characters in Perl source, but it was fundamentally
 broken (like the entirety of Perl 5.6's Unicode handling) and remained
 pretty much entirely unusable until it got some attention in the Perl
@@ -394,7 +394,7 @@ be available, either by loading a module or by doing nothing and hoping.
 An attempt is made to load the named module (as if by the bareword form
 of C<require>).  If the module cannot be found then it is assumed that
 the package was actually already loaded by other means, and no error
-is signalled.  That's the optimistic bit.
+is signaled.  That's the optimistic bit.
 
 I<Warning:> this optional module loading is liable to cause unreliable
 behaviour, including security problems.  It interacts especially badly
@@ -473,7 +473,7 @@ C<CORE::GLOBAL> mechanism, it is likely to break the heuristics used by
 L<"use_package_optimistically"|/use_package_optimistically(NAME[, VERSION])>,
 making it signal an error for a missing
 module rather than assume that it was already loaded.  From Perl 5.8.9
-onwards, and on 5.7.1 and earlier, this module can avoid being confused
+onward, and on 5.7.1 and earlier, this module can avoid being confused
 by such an override.  On the affected versions, a C<require> override
 might be installed by L<Lexical::SealRequireHints>, if something requires
 its bugfix but for some reason its XS implementation isn't available.
