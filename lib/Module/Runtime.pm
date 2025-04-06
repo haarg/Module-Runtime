@@ -85,6 +85,7 @@ sub module_notional_filename($) {
 
 # Don't "use constant" here, to avoid dependencies.
 BEGIN {
+    ## no critic (ValuesAndExpressions::ProhibitMismatchedOperators)
     *_WORK_AROUND_HINT_LEAKAGE =
         "$]" < 5.011 && !("$]" >= 5.009004 && "$]" < 5.010001)
             ? sub(){1} : sub(){0};
