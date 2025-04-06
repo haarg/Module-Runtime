@@ -501,6 +501,8 @@ Andrew Main (Zefram) <zefram@fysh.org>
 Copyright (C) 2004, 2006, 2007, 2009, 2010, 2011, 2012, 2014, 2017
 Andrew Main (Zefram) <zefram@fysh.org>
 
+Copyright (C) 2025 Graham Knop <haarg@haarg.org>
+
 =head1 LICENSE
 
 This module is free software; you can redistribute it and/or modify it
