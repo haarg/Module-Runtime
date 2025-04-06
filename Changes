@@ -1,6 +1,13 @@
 Revision history for Module-Runtime
 
 {{ $NEXT }}
+  - fixed internal Pod links
+
+  - various internal formatting changes
+
+  - check for eval failures via return value, not $@
+
+  - update packaging to remove Module::Build and set x_static_install
 
 0.016  2017-10-17
   - port t/taint.t to Perl 5.27.5, where re-requiring an already-loaded
