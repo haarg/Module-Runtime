@@ -11,6 +11,8 @@ Revision history for Module-Runtime
 
   - update packaging to remove Module::Build and set x_static_install
 
+  - removed broken SIGNATURE file
+
 0.016  2017-10-17
   - port t/taint.t to Perl 5.27.5, where re-requiring an already-loaded
     module doesn't trigger tainting
