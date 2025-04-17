@@ -51,19 +51,19 @@ sub _is_string($) {
     return defined($arg) && ref(\$arg) eq "SCALAR";
 }
 
-our $module_name_rx = qr/[A-Z_a-z][0-9A-Z_a-z]*(?:::[0-9A-Z_a-z]+)*/;
+our $module_name_rx = qr{[A-Z_a-z][0-9A-Z_a-z]*(?:::[0-9A-Z_a-z]+)*};
 
 my $qual_module_spec_rx =
-    qr#(?:/|::)[A-Z_a-z][0-9A-Z_a-z]*(?:(?:/|::)[0-9A-Z_a-z]+)*#;
+    qr{(?:/|::)[A-Z_a-z][0-9A-Z_a-z]*(?:(?:/|::)[0-9A-Z_a-z]+)*};
 
 my $unqual_top_module_spec_rx =
-    qr#[A-Z_a-z][0-9A-Z_a-z]*(?:(?:/|::)[0-9A-Z_a-z]+)*#;
+    qr{[A-Z_a-z][0-9A-Z_a-z]*(?:(?:/|::)[0-9A-Z_a-z]+)*};
 
-our $top_module_spec_rx = qr/$qual_module_spec_rx|$unqual_top_module_spec_rx/o;
+our $top_module_spec_rx = qr{$qual_module_spec_rx|$unqual_top_module_spec_rx};
 
-my $unqual_sub_module_spec_rx = qr#[0-9A-Z_a-z]+(?:(?:/|::)[0-9A-Z_a-z]+)*#;
+my $unqual_sub_module_spec_rx = qr{[0-9A-Z_a-z]+(?:(?:/|::)[0-9A-Z_a-z]+)*};
 
-our $sub_module_spec_rx = qr/$qual_module_spec_rx|$unqual_sub_module_spec_rx/o;
+our $sub_module_spec_rx = qr{$qual_module_spec_rx|$unqual_sub_module_spec_rx};
 
 sub is_module_name($) { _is_string($_[0]) && $_[0] =~ /\A$module_name_rx\z/o }
 
@@ -79,7 +79,7 @@ sub check_module_name($) {
 sub module_notional_filename($) {
     &check_module_name;
     my($name) = @_;
-    $name =~ s!::!/!g;
+    $name =~ s{::}{/}g;
     return $name.".pm";
 }
 
@@ -166,12 +166,12 @@ sub compose_module_name($$) {
     my($prefix, $spec) = @_;
     check_module_name($prefix) if defined $prefix;
     &check_module_spec;
-    if($spec =~ s#\A(?:/|::)##) {
+    if($spec =~ s{\A(?:/|::)}{}) {
         # OK
     } else {
         $spec = $prefix."::".$spec if defined $prefix;
     }
-    $spec =~ s#/#::#g;
+    $spec =~ s{/}{::}g;
     return $spec;
 }
 
