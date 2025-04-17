@@ -23,7 +23,7 @@ our @EXPORT_OK = qw(
 my %export_ok = map { ($_ => undef) } @EXPORT_OK;
 sub import {
     my $me = shift;
-    my $callpkg = caller(0);
+    my $callpkg = caller;
     my $errs = "";
     foreach(@_) {
         if(exists $export_ok{$_}) {
@@ -39,8 +39,8 @@ sub import {
         }
     }
     if($errs ne "") {
-        die "${errs}Can't continue after import errors ".
-            "at @{[(caller(0))[1]]} line @{[(caller(0))[2]]}.\n";
+        die sprintf "%sCan't continue after import errors at %s line %u.\n",
+            $errs, (caller)[1,2];
     }
 }
 
