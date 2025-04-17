@@ -148,9 +148,10 @@ sub use_package_optimistically($;$) {
 
 sub is_module_spec($$) {
     my($prefix, $spec) = @_;
-    return _is_string($spec) &&
-        $spec =~ ($prefix ? qr/\A$sub_module_spec_rx\z/o :
-                            qr/\A$top_module_spec_rx\z/o);
+    return _is_string($spec) && (
+        $prefix ? $spec =~ /\A$sub_module_spec_rx\z/o
+                : $spec =~ /\A$top_module_spec_rx\z/o
+    );
 }
 
 *is_valid_module_spec = \&is_module_spec;
