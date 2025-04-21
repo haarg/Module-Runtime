@@ -1,6 +1,6 @@
 Revision history for Module-Runtime
 
-{{ $NEXT }}
+0.018   2025-04-21
   - avoid xattr headers in release tarball
 
   - minor code reformatting
