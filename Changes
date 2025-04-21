@@ -1,6 +1,9 @@
 Revision history for Module-Runtime
 
 {{ $NEXT }}
+  - avoid xattr headers in release tarball
+
+  - minor code reformatting
 
 0.017   2025-04-06
   - fixed internal Pod links
